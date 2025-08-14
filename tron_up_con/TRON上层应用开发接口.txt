@@ -1,0 +1,614 @@
+set app_id = 6993579
+set api_key = hx5nlUBTcu8UcNoNhzXGITE5
+set secret_key = Ym6jMiJhUZMRPcoMVDNrd05J7Zyu2T0W
+
+上层应用开发接口
+1.概述
+在遥控模式下机器人通过WebSocket通信端口5000来接收用户端请求指令，例如让机器人站起、蹲下、行走等。WebSocket是一种实时通信协议，在机器人和用户端之间建立长连接，以便快速有效地传输控制信息和数据。
+
+2.通信协议格式
+当机器人通过 WebSocket 接收客户端指令时，采用 JSON 数据协议进行信息传递。这种方式具有显著优势：WebSocket 是一种全双工通信协议，能够在客户端与服务器之间建立实时、低延迟的连接，特别适合频繁交互的应用场景。JSON 数据协议则以其简洁、可读性强的结构，确保数据传输直观明了，且具有跨平台、跨语言的兼容性。WebSocket 与 JSON 的结合不仅与编程语言无关，适用于各种设备和系统，还能提升开发的灵活性和维护的便利性。
+
+2.1 请求数据格式包含以下字段：
+accid：机器人唯一序列号，标识机器人的唯一身份；
+title：指令名称，以"request_"为前缀；
+timestamp：指令发出时间戳，单位为毫秒；
+guid：指令的唯一标识符，用于区分不同的请求指令。如果是同步接口，则需要在"response_xxx"响应消息中通过guid字段将值带回给客户端。客户端接收到响应消息后，可以通过比较guid字段的值是否与请求指令中的值相同来判断指令是否执行完成；
+data：存放请求指令的数据内容。可以根据具体需求包含多个子字段，以存放请求指令所需的数据内容，例如执行动作的参数、发送消息的文本内容等等；
+示例如下：
+{
+  "accid": "PF_TRON1A_042", # 机器人唯一序列号，标识机器人的唯一身份
+  "title": "request_xxx",   # 指令名称，以"`request_`"为前缀
+  "timestamp": 1672373633989, # 指令发出时间戳，单位为毫秒
+  "guid": "746d937cd8094f6a98c9577aaf213d98", # 指令的唯一标识符，用于区分不同的请求指令
+  "data": {}  # 存放请求指令的数据内容
+}
+
+2.2 响应数据格式包含以下字段：
+accid：机器人唯一序列号，标识机器人的唯一身份；
+title：指令名称，以"response_"为前缀；
+timestamp：指令发出时间戳，单位为毫秒；
+guid：与对应请求指令的guid值相同；
+data：至少应该包含一个"result"子字段，用于存放请求指令的执行结果数据。如果有需要，还可以包含其他子字段，例如错误码、错误信息等用于描述操作结果的信息；
+示例如下：
+{
+  "accid": "PF_TRON1A_042",   # 机器人唯一序列号，标识机器人的唯一身份
+  "title": "response_xxx",  # 指令名称，以"`response_`"为前缀
+  "timestamp": 1672373633989, # 指令发出时间戳，单位为毫秒
+  "guid": "746d937cd8094f6a98c9577aaf213d98", # 与对应请求指令的guid值相同
+  "data": { # 存放响应指令的具体数据内容
+    "result": "success"  # "result" 用于存放请求指令处理是否成功，它的值为："success 或 fail_xxx"
+  }
+}
+
+
+2.3 消息推送：它是机器人主动向客户端发送信息的过程。这些信息可以包括机器人的序列号、当前运行状态、执行的操作等数据。通过及时地向客户端发送这些信息，机器人可以帮助客户端更好地理解它的工作状态，从而更好地使用它提供的服务。它的数据格式包含以下字段：
+accid：机器人唯一序列号，标识机器人的唯一身份；
+title：指令名称，以"notify_"为前缀；
+timestamp：消息发出时间戳，单位为毫秒；
+guid：消息的guid值，唯一标识这条消息；
+data：存放消息数据内容。可以根据具体需求包含多个子字段，以存放请求指令所需的数据内容；
+示例如下：
+{
+  "accid": "PF_TRON1A_042",   # 机器人唯一序列号，标识机器人的唯一身份
+  "title": "notify_xxx",  # 消息名称，以"`notify_`"为前缀
+  "timestamp": 1672373633989, # 消息发出时间戳，单位为毫秒
+  "guid": "746d937cd8094f6a98c9577aaf213d98", # 消息的guid值，唯一标识这条消息
+  "data": { } # 存放消息数据内容
+}
+
+3 查看软件序列号(ACCID)
+连接机器人无线网络
+机器人开机完成后，使用个人电脑连接机器人Wi-Fi，名称格式通常为「WF_TRON1A_xxx」
+输入Wi-Fi密码：12345678
+在浏览器中输入http://10.192.1.2:8080可以进入"机器人信息页"，并查看机器人信息。如下图所示，页面中显示的SN (序列号) 为PF_P441C_037，其中PF_P441C_037便是此机器人的软件序列号。
+
+4 通信测试方法
+Postman是一个流行的API开发环境，可以用于测试WebSocket接口。使用Postman测试WebSocket接口，请按照以下步骤操作：
+
+安装postman，下载地址：https://www.postman.com/downloads/?utm_source=postman-home；
+打开Postman，并创建一个WebSocket的请求；
+连接机器人无线网络
+机器人开机完成后，使用个人电脑连接机器人Wi-Fi，名称格式通常为「WF_TRON1A_xxx」
+输入Wi-Fi密码：12345678
+在请求的URL中输入WebSocket接口的地址，例如，"ws://10.192.1.2:5000";
+在"Message"中，输入要发送的指令请求；
+单击"Send"按钮，发送请求指令；
+发送指令后，可以从服务器接收响应消息。使用Postman的响应窗口查看服务器返回的数据，并检查是否符合预期结果。
+
+5 协议接口定义
+该机器人接口设计遵循与遥控器操控一致的流程和状态流转，确保调用顺序、响应时序及状态过渡与遥控器控制逻辑严格对齐。用户通过接口调用可获得如同使用遥控器的直观体验，同时支持遥控器与接口间的无缝切换，实现统一、稳定的机器人操控效果。
+
+5.1 蹲起状态
+5.1.1 
+请求：request_stand_mode
+{
+  "accid": "PF_TRON1A_042",
+  "title": "request_stand_mode",
+  "timestamp": 1672373633989,
+  "guid": "746d937cd8094f6a98c9577aaf213d98",
+  "data": {
+  }
+}
+
+5.1.2 
+响应：response_stand_mode
+{
+  "accid": "PF_TRON1A_042",
+  "title": "response_stand_mode",
+  "timestamp": 1672373633989,
+  "guid": "746d937cd8094f6a98c9577aaf213d98",
+  "data": {
+    "result": "success"  // success: 成功, fail_imu: IMU 错误, fail_motor: 电机错误
+}
+
+5.1.3 
+消息推送：notify_stand_mode
+机器人站起过程失败或完成后，主动推送此消息。
+
+{
+  "accid": "PF_TRON1A_042",
+  "title": "notify_stand_mode",
+  "timestamp": 1672373633989,
+  "guid": "746d937cd8094f6a98c9577aaf213d98",
+  "data": {
+    "result": "success"  // success: 成功, fail_imu: IMU 错误, fail_motor: 电机错误
+  }
+}
+
+5.2 行走状态
+5.2.1 
+请求：request_walk_mode
+{
+  "accid": "PF_TRON1A_042",
+  "title": "request_walk_mode",
+  "timestamp": 1672373633989,
+  "guid": "746d937cd8094f6a98c9577aaf213d98",
+  "data": {
+  }
+}
+
+5.2.2 
+响应：response_walk_mode
+{
+  "accid": "PF_TRON1A_042",
+  "title": "response_walk_mode",
+  "timestamp": 1672373633989,
+  "guid": "746d937cd8094f6a98c9577aaf213d98",
+  "data": {
+    "result": "success"  // success: 成功, fail_imu: IMU 错误, fail_motor: 电机错误
+}
+
+5.2.2 
+消息推送：notify_walk_mode
+机器人站起过程失败或完成后，主动推送此消息。
+
+{
+  "accid": "PF_TRON1A_042",
+  "title": "notify_walk_mode",
+  "timestamp": 1672373633989,
+  "guid": "746d937cd8094f6a98c9577aaf213d98",
+  "data": {
+    "result": "success"  // success: 成功, fail_imu: IMU 错误, fail_motor: 电机错误
+  }
+}
+
+5.3 控制行走
+5.3.1 
+请求：request_twist
+{
+  "accid": "PF_TRON1A_042",
+  "title": "request_twist",
+  "timestamp": 1672373633989,
+  "guid": "746d937cd8094f6a98c9577aaf213d98",
+  "data": {
+    "x": 0.0,  // 前进后退速度，单位：m/s
+    "y": 0.0,  // 横向行走速度，单位：m/s
+    "z": 0.0   // 角速度，单位：rad/s
+  }
+}
+
+5.3.2 
+响应：无
+
+5.3.3 
+消息推送：notify_twist
+机器人行走失败时，主动推送此消息。
+
+{
+  "accid": "PF_TRON1A_042",
+  "title": "notify_twist",
+  "timestamp": 1672373633989,
+  "guid": "746d937cd8094f6a98c9577aaf213d98",
+  "data": {
+    "result": "fail_motor"  // fail_imu: IMU 错误, fail_motor: 电机错误
+  }
+}
+
+5.4 调整机器身高
+5.4.1 
+请求：request_base_height
+{
+  "accid": "PF_TRON1A_042",
+  "title": "request_base_height",
+  "timestamp": 1672373633989,
+  "guid": "746d937cd8094f6a98c9577aaf213d98",
+  "data": {
+    "direction": -1  // 1：表示升高，-1：表示降低
+                     // 每次调用此请求会使机器人身高相应升高或降低 5cm
+  }
+}
+
+5.4.2 
+响应：response_base_height
+{
+  "accid": "PF_TRON1A_042",
+  "title": "response_base_height",
+  "timestamp": 1672373633989,
+  "guid": "746d937cd8094f6a98c9577aaf213d98",
+  "data": {
+    "result": "success"  // success: 成功, fail_status: 则表示机器人当前状态不允许调整身高
+  }
+}
+
+5.4.3 
+消息推送：无
+
+5.5 蹲下
+5.5.1 
+请求：request_sitdown
+{
+  "accid": "PF_TRON1A_042",
+  "title": "request_sitdown",
+  "timestamp": 1672373633989,
+  "guid": "746d937cd8094f6a98c9577aaf213d98",
+  "data": {}
+}
+
+5.5.2 
+响应：response_sitdown
+{
+  "accid": "PF_TRON1A_042",
+  "title": "response_sitdown",
+  "timestamp": 1672373633989,
+  "guid": "746d937cd8094f6a98c9577aaf213d98",
+  "data": {
+    "result": "success"  // success: 成功, fail_imu: IMU 错误, fail_motor: 电机错误
+  }
+}
+
+5.5.3 
+消息推送：notify_sitdown
+机器人蹲下过程失败或完成后，主动推送此消息。
+
+{
+  "accid": "PF_TRON1A_042",
+  "title": "notify_sitdown",
+  "timestamp": 1672373633989,
+  "guid": "746d937cd8094f6a98c9577aaf213d98",
+  "data": {
+    "result": "success"  // success: 成功, fail_imu: IMU 错误, fail_motor: 电机错误
+  }
+}
+
+5.6 开启楼梯模式
+5.6.1 
+请求：request_stair_mode
+本功能仅适用于 TRON1 型号的双轮足机器人。
+
+{
+  "accid": "PF_TRON1A_042",
+  "title": "request_stair_mode",
+  "timestamp": 1672373633989,
+  "guid": "746d937cd8094f6a98c9577aaf213d98",
+  "data": {
+      "enable": true  // true: 开启楼梯模式, false: 关闭楼梯模式
+  }
+}
+
+5.6.2 
+响应：response_stair_mode
+{
+  "accid": "PF_TRON1A_042",
+  "title": "response_stair_mode",
+  "timestamp": 1672373633989,
+  "guid": "746d937cd8094f6a98c9577aaf213d98",
+  "data": {
+    "result": "success"  // success: 成功, fail_imu: IMU 错误, fail_motor: 电机错误
+  }
+}
+
+5.6.3 
+消息推送：无
+
+5.7 紧急停止
+5.7.1 
+请求：request_emgy_stop
+{
+  "accid": "PF_TRON1A_042",
+  "title": "request_emgy_stop",
+  "timestamp": 1672373633989,
+  "guid": "746d937cd8094f6a98c9577aaf213d98",
+  "data": {}
+}
+
+5.7.2 
+响应：response_emgy_stop
+{
+  "accid": "PF_TRON1A_042",
+  "title": "response_emgy_stop",
+  "timestamp": 1672373633989,
+  "guid": "746d937cd8094f6a98c9577aaf213d98",
+  "data": {
+    "result": "success"  // success: 成功, fail_imu: IMU 错误, fail_motor: 电机错误
+  }
+}
+
+5.7.3 
+消息推送：无
+
+5.8 开启里程计
+5.8.1 
+请求：request_enable_odom
+该功能用于开启里程计推送，开启后系统将主动推送里程计数据（注意：轮足机器人才有里程计）。
+
+{
+  "accid": "PF_TRON1A_042",
+  "title": "request_enable_odom",
+  "timestamp": 1672373633989,
+  "guid": "746d937cd8094f6a98c9577aaf213d98",
+  "data": {
+      "enable": true  // true: 开启里程计, false: 禁用里程计
+  }
+}
+
+5.8.2 
+响应：response_enable_odom
+{
+  "accid": "PF_TRON1A_042",
+  "title": "response_enable_odom",
+  "timestamp": 1672373633989,
+  "guid": "746d937cd8094f6a98c9577aaf213d98",
+  "data": {
+    "result": "success"  // success: 成功, fail_odom: 不支持
+  }
+}
+
+5.8.3 
+消息推送：notify_odom
+开启里程计后，系统将主动推送包含里程计数据的消息。
+
+{
+  "accid": "PF_TRON1A_042", 
+  "title": "notify_odom", 
+  "timestamp": 1672373633989,
+  "guid": "746d937cd8094f6a98c9577aaf213d98",
+  "data": {
+      "pose_orientation": [0.0, 0.0, 0.0, 0.0], // 姿态 [x, y, z, w]
+      "pose_position": [0.0, 0.0, 0.0],         // 位置 [x, y, z] in m
+      "twist_linear": [0.0, 0.0, 0.0],          // 线速度 [x, y, z] in m/s
+      "twist_angular": [0.0, 0.0, 0.0]          // 角速度 [x, y, z] in rad/s
+  }
+}
+
+5.9 开启IMU数据
+5.9.1 
+请求：request_enable_imu
+该功能用于开启IMU数据推送，开启后系统将主动推送IMU数据。
+
+{
+  "accid": "PF_TRON1A_042",
+  "title": "request_enable_imu",
+  "timestamp": 1672373633989,
+  "guid": "746d937cd8094f6a98c9577aaf213d98",
+  "data": {
+      "enable": true  // true: 开启IMU, false: 禁用IMU
+  }
+}
+
+5.9.2 
+响应：response_enable_imu
+{
+  "accid": "PF_TRON1A_042",
+  "title": "response_enable_imu",
+  "timestamp": 1672373633989,
+  "guid": "746d937cd8094f6a98c9577aaf213d98",
+  "data": {
+    "result": "success"  // success: 成功, fail_imu: IMU
+  }
+}
+
+5.9.3 
+消息推送：notify_imu
+开启IMU数据后，系统将主动推送包含IMU状态的消息。
+
+{
+  "accid": "PF_TRON1A_042", 
+  "title": "notify_imu", 
+  "timestamp": 1672373633989,
+  "guid": "746d937cd8094f6a98c9577aaf213d98",
+  "data": {
+      "euler": [0.0, 0.0, 0.0],     // 欧拉角 [roll, pitch, yaw] in degrees
+      "acc": [0.0, 0.0, 0.0],       // 加速度 [x, y, z] in m/s²
+      "gyro": [0.0, 0.0, 0.0],      // 陀螺仪角速度 [x, y, z] in rad/s
+      "quat": [0.0, 0.0, 0.0, 0.0]  // 四元数 [w, x, y, z]
+  }
+}
+
+5.10 设置灯效
+5.10.1 
+请求：request_light_effect
+该接口用于设置机器人的灯光效果。用户可以通过此接口向机器人发送特定的灯光效果指令，机器人会根据指令调整其灯光显示。
+
+{
+  "accid": "PF_TRON1A_042",
+  "title": "request_light_effect",
+  "timestamp": 1672373633989,
+  "guid": "746d937cd8094f6a98c9577aaf213d98",
+  "data": {
+      "effect": 1
+  }
+}
+
+请求参数说明：
+
+参数名	类型	描述
+data.effect	数字	灯光效果的编号，对应不同的灯光显示模式，具体映射关系如下：
+1: STATIC_RED（静态红色）
+2: STATIC_GREEN（静态绿色）
+3: STATIC_BLUE（静态蓝色）
+4: STATIC_CYAN（静态青色）
+5: STATIC_PURPLE（静态紫色）
+6: STATIC_YELLOW（静态黄色）
+7: STATIC_WHITE（静态白色）
+8: LOW_FLASH_RED（低频闪烁红色）
+9: LOW_FLASH_GREEN（低频闪烁绿色）
+10: LOW_FLASH_BLUE（低频闪烁蓝色）
+11: LOW_FLASH_CYAN（低频闪烁青色）
+12: LOW_FLASH_PURPLE（低频闪烁紫色）
+13: LOW_FLASH_YELLOW（低频闪烁黄色）
+14: LOW_FLASH_WHITE（低频闪烁白色）
+15: FAST_FLASH_RED（高频闪烁红色）
+16: FAST_FLASH_GREEN（高频闪烁绿色）
+17: FAST_FLASH_BLUE（高频闪烁蓝色）
+18: FAST_FLASH_CYAN（高频闪烁青色）
+19: FAST_FLASH_PURPLE（高频闪烁紫色）
+20: FAST_FLASH_YELLOW（高频闪烁黄色）
+21: FAST_FLASH_WHITE（高频闪烁白色）
+6.5.10.2 响应：response_light_effect
+{
+  "accid": "PF_TRON1A_042",
+  "title": "response_light_effect",
+  "timestamp": 1672373633989,
+  "guid": "746d937cd8094f6a98c9577aaf213d98",
+  "data": {
+    "result": "success"  // success: 成功, fail_light_effect: 失败
+  }
+}
+
+5.10.3 消息推送：无
+
+5.11 全局消息
+5.11.1 
+机器人基本信息
+机器人基本信息每秒上报一次，包含以下内容：
+
+accid：机器人序列号
+title：notify_robot_info
+timestamp：消息发出时间戳，单位为毫秒
+guid：消息的guid值，唯一标识这条消息
+data：存放消息内容
+示例如下：
+{
+  "accid": "PF_TRON1A_042", 
+  "title": "notify_robot_info", 
+  "timestamp": 1672373633989,
+  "guid": "746d937cd8094f6a98c9577aaf213d98",
+  "data": {
+    "accid": "PF_TRON1A_042",
+    "sw_version": "robot-tron1-2.0.10.20241111103012",
+    "imu": "OK",
+    "camera": "OK",
+    "motor": "OK",
+    "battery": 95
+  }
+}
+
+5.11.2 非法指令消息
+当机器人收到非法格式的请求指令时，发送此消息，包含以下内容：
+
+accid：机器人序列号
+title：notify_invalid_request
+timestamp：消息发出时间戳，单位为毫秒
+guid：消息的guid值，唯一标识这条消息
+data：存放消息内容
+示例如下：
+{
+  "accid": "PF_TRON1A_042", 
+  "title": "notify_invalid_request", 
+  "timestamp": 1672373633989,
+  "guid": "746d937cd8094f6a98c9577aaf213d98",
+  "data": "返回原请求指令内容，便于客户端排查问题"
+}
+
+6 协议接口调用示例
+Python 示例实现
+
+环境准备：以Ubuntu 20.04系统为例，安装下面依赖
+
+sudo apt install python3-dev python3-pip
+sudo pip3 install websocket-client
+
+运行脚本
+
+python3 websocket_client.py
+
+websocket_client.py 实现
+
+import json
+import uuid
+import threading
+import time
+import websocket
+from datetime import datetime
+
+# Replace this ACCID value with your robot's actual serial number (SN)
+ACCID = "PF_TRON1A_042"
+
+# Atomic flag for graceful exit
+should_exit = False
+
+# WebSocket client instance
+ws_client = None
+
+# Generate dynamic GUID
+def generate_guid():
+    return str(uuid.uuid4())
+
+# Send WebSocket request with title and data
+def send_request(title, data=None):
+    if data is None:
+        data = {}
+    
+    # Create message structure with necessary fields
+    message = {
+        "accid": ACCID,
+        "title": title,
+        "timestamp": int(time.time() * 1000),  # Current timestamp in milliseconds
+        "guid": generate_guid(),
+        "data": data
+    }
+
+    message_str = json.dumps(message)
+    
+    # Send the message through WebSocket if client is connected
+    if ws_client:
+        ws_client.send(message_str)
+
+# Handle user commands
+def handle_commands():
+    global should_exit
+    while not should_exit:
+        command = input("Enter command ('stand', 'walk', 'twist', 'sit', 'stair', 'stop', 'imu') or 'exit' to quit:\n")
+        
+        if command == "exit":
+            should_exit = True  # Set exit flag to stop the loop
+            break
+        elif command == "stand":
+            send_request("request_stand_mode")  # Send stand mode request
+        elif command == "walk":
+            send_request("request_walk_mode")  # Send walk mode request
+        elif command == "twist":
+            # Get twist values from user
+            x = float(input("Enter x value:"))
+            y = float(input("Enter y value:"))
+            z = float(input("Enter z value:"))
+            send_request("request_twist", {"x": x, "y": y, "z": z})
+        elif command == "sit":
+            send_request("request_sitdown")  # Send sit down request
+        elif command == "stair":
+            # Get stair mode enable flag from user
+            enable = input("Enable stair mode (true/false):").strip().lower() == 'true'
+            send_request("request_stair_mode", {"enable": enable})
+        elif command == "stop":
+            send_request("request_emgy_stop")  # Send emergency stop request
+        elif command == "imu":
+            # Get IMU enable flag from user
+            enable = input("Enable IMU (true/false):").strip().lower() == 'true'
+            send_request("request_enable_imu", {"enable": enable})
+
+# WebSocket on_open callback
+def on_open(ws):
+    print("Connected!")
+    # Start handling commands in a separate thread
+    threading.Thread(target=handle_commands, daemon=True).start()
+
+# WebSocket on_message callback
+def on_message(ws, message):
+    print(f"Received message: {message}")  # Print the received message
+
+# WebSocket on_close callback
+def on_close(ws, close_status_code, close_msg):
+    print("Connection closed.")
+
+# Close WebSocket connection
+def close_connection(ws):
+    ws.close()
+
+def main():
+    global ws_client
+    
+    # Create WebSocket client instance
+    ws_client = websocket.WebSocketApp(
+        "ws://10.192.1.2:5000",  # WebSocket server URI
+        on_open=on_open,
+        on_message=on_message,
+        on_close=on_close
+    )
+    
+    # Run WebSocket client loop
+    print("Press Ctrl+C to exit.")
+    ws_client.run_forever()
+
+if __name__ == "__main__":
+    main()
